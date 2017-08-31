@@ -116,13 +116,11 @@ def logistic_regression_SG(feature_matrix, sentiment, initial_coefficients, step
         # Predict P(y_i = +1|x_i,w) using your predict_probability() function
         # Make sure to slice the i-th row of feature_matrix with [i:i+batch_size,:]
         ### YOUR CODE HERE
-        predictions = predict_probability(feature_matrix_train[i:i+batch_size,:], coefficients)
-        
+        predictions = predict_probability(feature_matrix[i:i+batch_size,:], coefficients)
         # Compute indicator value for (y_i = +1)
         # Make sure to slice the i-th entry with [i:i+batch_size]
         ### YOUR CODE HERE
-        indicator = (sentiment_train[i:i+batch_size]==+1)
-        
+        indicator = (sentiment[i:i+batch_size]==+1)
         # Compute the errors as indicator - predictions
         errors = indicator - predictions
         for j in xrange(len(coefficients)): # loop over each coefficient
@@ -130,14 +128,14 @@ def logistic_regression_SG(feature_matrix, sentiment, initial_coefficients, step
             # Compute the derivative for coefficients[j] and save it to derivative.
             # Make sure to slice the i-th row of feature_matrix with [i:i+batch_size,j]
             ### YOUR CODE HERE
-            derivative = feature_derivative(errors, feature_matrix_train[i:i+batch_size,j])
+            derivative = feature_derivative(errors, feature_matrix[i:i+batch_size,j])
             
             # compute the product of the step size, the derivative, and the **normalization constant** (1./batch_size)
             ### YOUR CODE HERE
-            coefficients[j] += step_size * derivative
+            coefficients[j] += step_size * derivative * 1. / batch_size
         
         # Checking whether log likelihood is increasing
-        # Print the log likelihood over the *current batch*
+        # Prin the log likelihood over the *current batch*
         lp = compute_avg_log_likelihood(feature_matrix[i:i+batch_size,:], sentiment[i:i+batch_size],
                                         coefficients)
         log_likelihood_all.append(lp)
@@ -164,6 +162,7 @@ coefficients, log_likelihood = logistic_regression_SG(sample_feature_matrix, sam
 print '-------------------------------------------------------------------------------------'
 print 'Coefficients learned                 :', coefficients
 print 'Average log likelihood per-iteration :', log_likelihood
+
 if np.allclose(coefficients, np.array([-0.09755757,  0.68242552, -0.7799831]), atol=1e-3)\
   and np.allclose(log_likelihood, np.array([-0.33774513108142956, -0.2345530939410341])):
     # pass if elements match within 1e-3
@@ -171,3 +170,55 @@ if np.allclose(coefficients, np.array([-0.09755757,  0.68242552, -0.7799831]), a
     print 'Test passed!'
 else:
     print '-------------------------------------------------------------------------------------'
+
+coefficients, log_likelihood = logistic_regression_SG(feature_matrix_train, sentiment_train, initial_coefficients=np.zeros(194),step_size=5e-1, batch_size=1, max_iter=10)
+
+coefficients, log_likelihood = logistic_regression_SG(feature_matrix_train, sentiment_train, initial_coefficients=np.zeros(194),step_size=5e-1, batch_size=len(feature_matrix_train), max_iter=200)
+
+step_size = 1e-1
+batch_size = 100
+num_passes = 10
+num_iterations = num_passes * int(len(feature_matrix_train)/batch_size)
+
+coefficients_sgd, log_likelihood_sgd = logistic_regression_SG(feature_matrix_train, sentiment_train,initial_coefficients=np.zeros(194),step_size=1e-1, batch_size=100, max_iter=num_iterations)
+
+import matplotlib.pyplot as plt
+
+def make_plot(log_likelihood_all, len_data, batch_size, smoothing_window=1, label=''):
+    plt.rcParams.update({'figure.figsize': (9,5)})
+    log_likelihood_all_ma = np.convolve(np.array(log_likelihood_all), \
+                                        np.ones((smoothing_window,))/smoothing_window, mode='valid')
+    plt.plot(np.array(range(smoothing_window-1, len(log_likelihood_all)))*float(batch_size)/len_data,
+             log_likelihood_all_ma, linewidth=4.0, label=label)
+    plt.rcParams.update({'font.size': 16})
+    plt.tight_layout()
+    plt.xlabel('# of passes over data')
+    plt.ylabel('Average log likelihood per data point')
+    plt.legend(loc='lower right', prop={'size':14})
+    plt.show()
+    plt.close()
+
+make_plot(log_likelihood_sgd, len_data=len(feature_matrix_train), batch_size=100,label='stochastic gradient, step_size=1e-1')
+
+
+make_plot(log_likelihood_sgd, len_data=len(feature_matrix_train), batch_size=100,smoothing_window=30, label='stochastic gradient, step_size=1e-1')
+
+
+step_size = 1e-1
+batch_size = 100
+num_passes = 200
+num_iterations = num_passes * int(len(feature_matrix_train)/batch_size)
+
+## YOUR CODE HERE
+coefficients_sgd, log_likelihood_sgd = logistic_regression_SG(feature_matrix_train, sentiment_train,initial_coefficients=np.zeros(194),step_size=step_size, batch_size=batch_size, max_iter=num_iterations)
+
+make_plot(log_likelihood_sgd, len_data=len(feature_matrix_train), batch_size=100,
+          smoothing_window=30, label='stochastic, step_size=1e-1')
+
+step_size = 0.5
+batch_size=len(feature_matrix_train)
+
+coefficients_batch, log_likelihood_batch = logistic_regression_SG(feature_matrix_train, sentiment_train,initial_coefficients=np.zeros(194),step_size=step_size, batch_size=batch_size, max_iter=num_iterations)
+
+make_plot(log_likelihood_batch, len_data=len(feature_matrix_train), batch_size=len(feature_matrix_train),
+          smoothing_window=1, label='batch, step_size=5e-1')

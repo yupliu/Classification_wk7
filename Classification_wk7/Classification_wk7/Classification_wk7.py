@@ -1,10 +1,10 @@
 from __future__ import division
 import graphlab
-#products = graphlab.SFrame('D:\\ML_Learning\\UW_Classification\\week7\\amazon_baby_subset.gl\\')
-products = graphlab.SFrame('C:\\Machine_Learning\\Classification_wk7\\amazon_baby_subset.gl\\')
+products = graphlab.SFrame('D:\\ML_Learning\\UW_Classification\\week7\\amazon_baby_subset.gl\\')
+#products = graphlab.SFrame('C:\\Machine_Learning\\Classification_wk7\\amazon_baby_subset.gl\\')
 import json
-#with open('D:\\ML_Learning\\UW_Classification\\week7\\important_words.json', 'r') as f: 
-with open('C:\\Machine_Learning\\Classification_wk7\\important_words.json', 'r') as f:
+with open('D:\\ML_Learning\\UW_Classification\\week7\\important_words.json', 'r') as f: 
+#with open('C:\\Machine_Learning\\Classification_wk7\\important_words.json', 'r') as f:
 
     important_words = json.load(f)
 important_words = [str(s) for s in important_words]
@@ -222,3 +222,20 @@ coefficients_batch, log_likelihood_batch = logistic_regression_SG(feature_matrix
 
 make_plot(log_likelihood_batch, len_data=len(feature_matrix_train), batch_size=len(feature_matrix_train),
           smoothing_window=1, label='batch, step_size=5e-1')
+
+
+batch_size = 100
+num_passes = 10
+num_iterations = num_passes * int(len(feature_matrix_train)/batch_size)
+
+coefficients_sgd = {}
+log_likelihood_sgd = {}
+for step_size in np.logspace(-4, 2, num=7):
+    coefficients_sgd[step_size], log_likelihood_sgd[step_size] = logistic_regression_SG(feature_matrix_train, sentiment_train,initial_coefficients=np.zeros(194),step_size=step_size, batch_size=batch_size, max_iter=num_iterations)
+
+for step_size in np.logspace(-4, 2, num=7):
+    make_plot(log_likelihood_sgd[step_size], len_data=len(feature_matrix_train), batch_size=100,smoothing_window=30, label='step_size=%.1e'%step_size)
+
+for step_size in np.logspace(-4, 2, num=7)[0:6]:
+    make_plot(log_likelihood_sgd[step_size], len_data=len(train_data), batch_size=100,
+              smoothing_window=30, label='step_size=%.1e'%step_size)
